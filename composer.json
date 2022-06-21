@@ -1,0 +1,15 @@
+{
+  "name": "mpusher/cron-admin",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "workerman/webman-framework": "^1.2.1",
+    "workerman/crontab": "^1.0",
+    "webman-task": "^v1.1.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Mpusher\\Snowflake\\": "src"
+    }
+  }
+}

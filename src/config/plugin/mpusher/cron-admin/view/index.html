@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/@smallwei/avue@2.9.11/lib/index.css">
+    <title>{$title}</title>
+    <style>
+      html,
+      body,
+      #app {
+        height: 100%;
+        margin: 0;
+      }
+
+      .avue-home {
+        background-color: #303133;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .avue-home__main {
+        user-select: none;
+        width: 100%;
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .avue-home__footer {
+        width: 100%;
+        flex-grow: 0;
+        text-align: center;
+        padding: 1em 0;
+      }
+
+      .avue-home__footer>a {
+        font-size: 12px;
+        color: #ABABAB;
+        text-decoration: none;
+      }
+
+      .avue-home__loading {
+        height: 32px;
+        width: 32px;
+        margin-bottom: 20px;
+      }
+
+      .avue-home__title {
+        color: #FFF;
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .avue-home__sub-title {
+        color: #ABABAB;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      <strong>
+        很抱歉，如果没有 JavaScript 支持，Saber 将不能正常工作。请启用浏览器的 JavaScript 然后继续。
+      </strong>
+    </noscript>
+    <div id="app">
+      <div class="avue-home" v-if="!loaded">
+        <div class="avue-home__main">
+          <div class="avue-home__title">
+            正在加载资源
+          </div>
+          <div class="avue-home__sub-title d">
+            初次加载资源可能需要较多时间 请耐心等待
+          </div>
+        </div>
+      </div>
+      <div style="padding: 10px;">
+        <avue-crud :data="data" :option="option" :table-loading="loading" :page.sync="page" @on-load="onLoad"
+          :search.sync="query" @row-del="rowDel" @search-change="searchChange" @search-reset="searchReset"
+          @row-update="rowUpdate" @row-save="rowSave" @current-change="currentChange" @size-change="sizeChange"
+          @refresh-change="refreshChange">
+          <template slot="menu" slot-scope="{ row, index, size, type }">
+            <el-button :size="size" :type="type" icon="el-icon-view" @click="showLogListPop(row, index)">
+              运行日志</el-button>
+            <el-button :size="size" :type="type" icon="el-icon-view" @click="restartTask(row, index)">
+              重启任务</el-button>
+          </template>
+        </avue-crud>
+      </div>
+      <el-dialog title="运行日志" append-to-body :visible.sync="logDialogPop" width="1200px">
+        <avue-crud :data="logData" :option="logOption" :table-loading="loading" :page.sync="logPage" @on-load="logOnLoad" @refresh-change="logRefreshChange"></avue-crud>
+      </el-dialog>
+    </div>
+    <script src="https://unpkg.com/vue@2.6.10/dist/vue.min.js" charset="utf-8"></script>
+    <script src="https://unpkg.com/axios@0.27.2/dist/axios.min.js" charset="utf-8"></script>
+    <script src="https://unpkg.com/element-ui@2.15.9/lib/index.js" charset="utf-8"></script>
+    <script src="https://unpkg.com/@smallwei/avue@2.9.11/lib/avue.min.js" charset="utf-8"></script>
+    <script>
+      window.app = new Vue({
+        el: '#app',
+        data() {
+          return {
+            loaded: false,
+            loading: false,
+            logDialogPop: false,
+            logPage: {
+              pagerCount: 1,
+              total: 1
+            },
+            logData: [],
+            logOption: {
+              height: 'auto',
+              calcHeight: 30,
+              tip: false,
+              searchShow: true,
+              searchMenuSpan: 6,
+              border: true,
+              index: true,
+              viewBtn: false,
+              selection: false,
+              addBtn: false,
+              editBtn: false,
+              delBtn: false,
+              menu: false,
+              column: [
+                {
+                  label: '任务id',
+                  prop: 'crontab_id'
+                },
+                {
+                  label: '调度命令',
+                  prop: 'target'
+                },
+                {
+                  label: '调度参数',
+                  prop: 'parameter'
+                },
+                {
+                  label: '异常信息输出',
+                  prop: 'exception'
+                },
+                {
+                  label: '执行返回状态',
+                  prop: 'return_code'
+                },
+                {
+                  label: '执行所用时间',
+                  prop: 'running_time'
+                },
+                {
+                  label: '更新时间',
+                  prop: 'update_time'
+                },
+                {
+                  label: '创建时间',
+                  prop: 'create_time'
+                },
+              ],
+            },
+            page: {
+              pagerCount: 1,
+              total: 1
+            },
+            query: {},
+            data: [{}],
+            option: {
+              height: 'auto',
+              calcHeight: 30,
+              tip: false,
+              searchShow: true,
+              searchMenuSpan: 18,
+              border: true,
+              index: true,
+              viewBtn: false,
+              selection: false,
+              addBtn: true,
+              editBtn: true,
+              delBtn: true,
+              dialogClickModal: false,
+              span: 8,
+              menuWidth: 340,
+              stripe: true,
+              searchMenuPosition: 'right',
+              column: [
+                {
+                  label: '任务ID',
+                  prop: 'id',
+                  disabled: true,
+                  search: true,
+                },
+                {
+                  label: '任务标题',
+                  prop: 'title',
+                  search: true,
+                  rules: [{
+                    required: true,
+                    message: "请输入任务标题",
+                    trigger: "blur"
+                  }],
+                },
+                {
+                  label: '任务类型',
+                  prop: 'type',
+                  type: 'select',
+                  search: true,
+                  value: 1,
+                  dicData: [
+                    // 1 command, 2 class, 3 url, 4 eval
+                    {
+                      label: 'command',
+                      value: 1,
+                    },
+                    {
+                      label: 'class',
+                      value: 2,
+                    },
+                    {
+                      label: 'url',
+                      value: 3,
+                    },
+                    {
+                      label: 'eval',
+                      value: 4,
+                    },
+                  ],
+                },
+                {
+                  label: '表达式',
+                  prop: 'rule'
+                },
+                {
+                  label: '调度命令',
+                  prop: 'target',
+                  type: 'textarea'
+                },
+                {
+                  label: '调度参数',
+                  prop: 'parameter',
+                  type: 'textarea'
+                },
+                {
+                  label: '已运行次数',
+                  prop: 'running_times',
+                  display: false,
+                },
+                {
+                  label: '上次运行时间',
+                  prop: 'last_running_time',
+                  display: false,
+                },
+                
+                {
+                  label: '排序',
+                  prop: 'sort',
+                  value: 1,
+                  type: 'number'
+                },
+                {
+                  label: '状态',
+                  prop: 'status',
+                  type: 'radio',
+                  search: true,
+                  value: 1,
+                  dicData: [
+                    {
+                      label: '启用',
+                      value: 1,
+                    },
+                    {
+                      label: '禁用',
+                      value: 0,
+                    }
+                  ],
+                },
+                {
+                  label: '是否单次运行',
+                  prop: 'singleton',
+                  search: true,
+                  type: 'radio',
+                  labelWidth: 140,
+                  value: 1,
+                  dicData: [
+                    {
+                      label: '是',
+                      value: 0,
+                    },
+                    {
+                      label: '否',
+                      value: 1,
+                    }
+                  ],
+                },
+                {
+                  label: '更新时间',
+                  prop: 'update_time',
+                  display: false,
+                },
+                {
+                  label: '创建时间',
+                  prop: 'create_time',
+                  display: false,
+                },
+                {
+                  label: '备注',
+                  prop: 'remark',
+                  span: 24,
+                  type: 'textarea'
+                },
+              ]
+            }
+          };
+        },
+        mounted() {
+          this.loaded = true;
+        },
+        methods: {
+          showLogListPop(row, index) {
+            this.currentRow = row;
+            this.logDialogPop = true;
+          },
+          searchReset() {
+            this.query = {};
+            this.onLoad(this.page);
+          },
+          searchChange(params, done) {
+            this.query = params;
+            this.page.currentPage = 1;
+            this.onLoad(this.page, params);
+            done();
+          },
+          restartTask(row, index) {
+            axios.post('/cron-admin/api/reload', row).then(() => {
+              this.$message({
+                type: "success",
+                message: "操作成功!"
+              });
+            })
+          },
+          rowSave(row, done, loading) {
+            axios.post('/cron-admin/api/create', row).then((res) => {
+              // 获取新增数据的相关字段
+              this.$message({
+                type: "success",
+                message: "操作成功!"
+              });
+              this.onLoad(this.page);
+              // 数据回调进行刷新
+              done();
+            }, error => {
+              window.console.log(error);
+              loading();
+            });
+          },
+          rowUpdate(row, index, done, loading) {
+            axios.post('/cron-admin/api/update', row).then(() => {
+              this.$message({
+                type: "success",
+                message: "操作成功!"
+              });
+              this.onLoad(this.page);
+              // 数据回调进行刷新
+              done();
+            }, error => {
+              window.console.log(error);
+              loading();
+            });
+          },
+          rowDel(row, index, done) {
+            this.$confirm("确定将选择数据删除?", {
+              confirmButtonText: "确定",
+              cancelButtonText: "取消",
+              type: "warning"
+            })
+              .then(() => {
+                return axios.post('/cron-admin/api/delete', row);
+              })
+              .then(() => {
+                this.$message({
+                  type: "success",
+                  message: "操作成功!"
+                });
+                this.onLoad(this.page);
+                // 数据回调进行刷新
+                done();
+              });
+          },
+          currentChange(currentPage) {
+            this.page.currentPage = currentPage;
+          },
+          sizeChange(pageSize) {
+            this.page.pageSize = pageSize;
+          },
+          refreshChange() {
+            this.onLoad(this.page, this.query);
+          },
+          logRefreshChange() {
+            this.logOnLoad(this.logPage);
+          },
+          onLoad(page, params = {}) {
+            this.loading = true;
+            axios.get('/cron-admin/api/list/' + page.currentPage + '/' + page.pageSize, {
+              params,
+            }).then(res => {
+              if (res.data.code === 201) {
+                this.$message.error('登录失效，请重新登录');
+                setTimeout(() => {
+                  window.location.href = './login';
+                }, 1000);
+                return;
+              }
+              const data = res.data.data;
+              this.page.total = data.total;
+              this.data = data.data;
+              this.loading = false;
+            });
+          },
+          logOnLoad(page, params = {}) {
+            this.loading = true;
+            axios.get('/cron-admin/api/logs/' + this.currentRow.id + '/' + page.currentPage + '/' + page.pageSize, {
+              params,
+            }).then(res => {
+              const data = res.data.data;
+              this.logPage.total = data.total;
+              this.logData = data.data;
+              this.loading = false;
+            });
+          }
+        },
+      });
+    </script>
+  </body>
+
+</html>
