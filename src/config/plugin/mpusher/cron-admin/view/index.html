@@ -154,7 +154,18 @@
                 },
                 {
                   label: '执行返回状态',
-                  prop: 'return_code'
+                  prop: 'return_code',
+                  dataType: 'number',
+                  dicData: [
+                    {
+                      label: '成功',
+                      value: 0,
+                    },
+                    {
+                      label: '失败',
+                      value: 1,
+                    },
+                  ],
                 },
                 {
                   label: '执行所用时间',
