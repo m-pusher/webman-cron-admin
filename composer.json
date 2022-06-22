@@ -5,7 +5,7 @@
   "require": {
     "workerman/webman-framework": "^1.2.1",
     "workerman/crontab": "^1.0",
-    "yzh52521/webman-task": "^v1.1.5"
+    "yzh52521/webman-task": "^v1.1.6"
   },
   "autoload": {
     "psr-4": {
