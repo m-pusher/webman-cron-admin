@@ -162,11 +162,17 @@
                 },
                 {
                   label: '更新时间',
-                  prop: 'update_time'
+                  prop: 'update_time',
+                  type: 'datetime',
+                  format: "yyyy-MM-dd HH:mm:ss",
+                  valueFormat: "yyyy-MM-dd HH:mm:ss",
                 },
                 {
                   label: '创建时间',
-                  prop: 'create_time'
+                  prop: 'create_time',
+                  type: 'datetime',
+                  format: "yyyy-MM-dd HH:mm:ss",
+                  valueFormat: "yyyy-MM-dd HH:mm:ss",
                 },
               ],
             },
@@ -259,6 +265,9 @@
                 {
                   label: '上次运行时间',
                   prop: 'last_running_time',
+                  type: 'datetime',
+                  format: "yyyy-MM-dd HH:mm:ss",
+                  valueFormat: "yyyy-MM-dd HH:mm:ss",
                   display: false,
                 },
                 
@@ -306,11 +315,17 @@
                 {
                   label: '更新时间',
                   prop: 'update_time',
+                  type: 'datetime',
+                  format: "yyyy-MM-dd HH:mm:ss",
+                  valueFormat: "yyyy-MM-dd HH:mm:ss",
                   display: false,
                 },
                 {
                   label: '创建时间',
                   prop: 'create_time',
+                  type: 'datetime',
+                  format: "yyyy-MM-dd HH:mm:ss",
+                  valueFormat: "yyyy-MM-dd HH:mm:ss",
                   display: false,
                 },
                 {
@@ -409,10 +424,29 @@
           logRefreshChange() {
             this.logOnLoad(this.logPage);
           },
+          removeDollar(data) {
+            if (Array.isArray(data)) {
+              return data.map((item) => {
+                const temp = {};
+                Object.keys(item).forEach(key => {
+                  if (key.startsWith('$')) return;
+                  temp[key] = item[key];
+                });
+                return temp;
+              });
+            } else if (typeof data === 'object') {
+              const temp = {};
+              Object.keys(data).forEach(key => {
+                if (key.startsWith('$')) return;
+                temp[key] = data[key];
+              });
+              return temp;
+            }
+          },
           onLoad(page, params = {}) {
             this.loading = true;
             axios.get('/cron-admin/api/list/' + page.currentPage + '/' + page.pageSize, {
-              params,
+              params: this.removeDollar(params),
             }).then(res => {
               if (res.data.code === 201) {
                 this.$message.error('登录失效，请重新登录');
@@ -422,6 +456,11 @@
                 return;
               }
               const data = res.data.data;
+              data.data.forEach((item) => {
+                item.update_time = item.update_time * 1000;
+                item.last_running_time = item.last_running_time * 1000;
+                item.create_time = item.create_time * 1000;
+              })
               this.page.total = data.total;
               this.data = data.data;
               this.loading = false;
@@ -430,9 +469,13 @@
           logOnLoad(page, params = {}) {
             this.loading = true;
             axios.get('/cron-admin/api/logs/' + this.currentRow.id + '/' + page.currentPage + '/' + page.pageSize, {
-              params,
+              params: this.removeDollar(params),
             }).then(res => {
               const data = res.data.data;
+              data.data.forEach((item) => {
+                item.update_time = item.update_time * 1000;
+                item.create_time = item.create_time * 1000;
+              })
               this.logPage.total = data.total;
               this.logData = data.data;
               this.loading = false;
