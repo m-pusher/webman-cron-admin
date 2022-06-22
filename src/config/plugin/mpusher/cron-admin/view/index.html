@@ -440,7 +440,7 @@
               return data.map((item) => {
                 const temp = {};
                 Object.keys(item).forEach(key => {
-                  if (key.startsWith('$')) return;
+                  if (key.startsWith('$') || data[key] === '') return;
                   temp[key] = item[key];
                 });
                 return temp;
@@ -448,7 +448,7 @@
             } else if (typeof data === 'object') {
               const temp = {};
               Object.keys(data).forEach(key => {
-                if (key.startsWith('$')) return;
+                if (key.startsWith('$') || data[key] === '') return;
                 temp[key] = data[key];
               });
               return temp;
